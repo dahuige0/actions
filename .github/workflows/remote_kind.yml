@@ -98,7 +98,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
         run: |
           oras login ghcr.io -u${{ inputs.username }} -p${{ inputs.password }}
-          oras pull ghcr.io/${{ inputs.valueImage }}:${{ matrix.valueTag }}
+          oras pull ghcr.io/${{ inputs.valueImage }}:${{ inputs.valueTag }}
           chmod +x init.sh
           ./init.sh
 
