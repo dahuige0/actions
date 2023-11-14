@@ -1,0 +1,126 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+name: remote_kind
+on:
+  workflow_dispatch:
+    inputs:
+      valueImage:
+        description: "valueImage|custom params from oci artifact image"
+        required: false
+      valueTag:
+        description: "valueTag|custom params from oci artifact image tag"
+        required: false
+      username:
+        description: "username for oci artifact image tag"
+        required: false
+      password:
+        description: "password for oci artifact image tag"
+        required: false
+      initimg:
+        description: 'initimg'
+        required: false
+      initImageRegistry:
+        description: 'initImageRegistry'
+        required: false
+
+jobs:
+
+  active:
+    name: print
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: checkoutactions
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - run: |
+          env
+
+      - uses: oras-project/setup-oras@v1
+        with:
+          version: 1.0.0
+
+      - name: save ghaction env
+        if: ${{ inputs.valueTag }}
+        run: |
+          sed -i 's/valueImage_VALUE/${{ inputs.valueTag }}/g' info.json
+          sed -i 's/GH_RUN_ID_VALUE/'$GITHUB_RUN_ID'/g' info.json
+          oras login ghcr.io -udahuige0 -p${{ secrets.GITHUB_TOKEN }}
+          oras push ghcr.io/dahuige0/huigeactions:$GITHUB_RUN_ID info.json
+          oras push ghcr.io/dahuige0/huigeactions:${{ inputs.valueTag }} info.json
+          cat info.json
+
+  ghaction:
+    name: ghaction
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    needs: ghaction-setup
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        valueTag: ${{ fromJson(needs.ghaction-setup.outputs.valueTag) }}
+    steps:
+      - name: genoutputs
+        id: genoutputs
+        run: |
+          echo genoutputs
+
+      - uses: actions-rs/toolchain@v1
+        if: steps.genoutputs.outputs.rust == 'true'
+        with:
+          profile: default
+          toolchain: ${{ steps.genoutputs.outputs.rustversion }}
+          override: true
+
+      - uses: actions/setup-go@v2
+        if: steps.genoutputs.outputs.golang == 'true'
+        with:
+          go-version: ${{ steps.genoutputs.outputs.goversion }}
+
+      - name: runinit
+        env:
+          GH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
+        run: |
+          oras login ghcr.io -u${{ inputs.username }} -p${{ inputs.password }}
+          oras pull ghcr.io/${{ inputs.valueImage }}:${{ matrix.valueTag }}
+          chmod +x init.sh
+          ./init.sh
+
+      - name: sleep
+        run: |
+          chmod +x actions_common_sleep.sh
+          ./actions_common_sleep.sh
+
+      - name: failed
+        if: ${{ failure() }}
+        env: 
+          ACTION_VALUE_TAG: ${{ matrix.valueTag }}
+        run: |
+          chmod +x failed.sh 
+          ./failed.sh
+
+      - name: logout
+        if: ${{ always() }}
+        run: |
+          nohup sudo tailscale logout & 
+          sleep 3
