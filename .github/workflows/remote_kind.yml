@@ -96,7 +96,7 @@ jobs:
       - name: runinit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTION_VALUE_TAG: ${{ matrix.valueTag }}
+          ACTION_VALUE_TAG: ${{ inputs.valueTag }}
           ACTION_VALUE_IMAGE: ${{ inputs.valueImage }}
           ORAS_PASSWORD: ${{ inputs.password }}
           ORAS_USERNAME: ${{ inputs.username }}
