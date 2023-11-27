@@ -39,6 +39,16 @@ on:
       initImageRegistry:
         description: 'initImageRegistry'
         required: false
+      slackMsgId:
+        description: 'actionkind'
+        required: false
+        default: ""
+      custom:
+        description: "custom query param"
+        required: false
+      port:
+        description: 'port'
+        required: false
 
 jobs:
 
