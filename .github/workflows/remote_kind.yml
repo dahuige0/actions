@@ -36,9 +36,6 @@ on:
       initimg:
         description: 'initimg'
         required: false
-      initImageRegistry:
-        description: 'initImageRegistry'
-        required: false
       slackMsgId:
         description: 'actionkind'
         required: false
@@ -49,6 +46,7 @@ on:
       port:
         description: 'port'
         required: false
+        
 
 jobs:
 
@@ -110,6 +108,7 @@ jobs:
           ACTION_VALUE_IMAGE: ${{ inputs.valueImage }}
           ORAS_PASSWORD: ${{ inputs.password }}
           ORAS_USERNAME: ${{ inputs.username }}
+          slackMsgId: ${{ inputs.slackMsgId }}
         run: |
           if [ "$ORAS_PASSWORD" == "" ];then 
             oras login ghcr.io -u$ORAS_USERNAME -p$GH_TOKEN
